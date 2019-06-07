@@ -1,0 +1,140 @@
+figure(1);
+s = size(dane10sec);
+
+time=zeros(1,s(1));
+dane = table2array(dane10sec);
+for i=1:s
+    time_ex=str2double(regexp(dane(i,1),':','split'));
+    time(i)=360*time_ex(1)+60*time_ex(2)+time_ex(3);  
+end
+
+dane_num=str2double(dane(:,2:s(2)));
+gotowe_dane=zeros(s);
+gotowe_dane(:,1)=time;
+gotowe_dane(:,2:s(2))=dane_num;
+
+figure()
+plot(gotowe_dane(:,25));
+
+%% Count corelation coefficients
+inputs = 2:23;
+outputs = [24 25];
+
+num_size = size(dane_num);
+corel_coefficients = corrcoef(dane_num);
+
+surf(corel_coefficients);
+
+corr_threshold = 0.7;
+for i=1:num_size(2)
+   for j=1:num_size(2)
+       if abs(corel_coefficients(i,j)) >= corr_threshold & i~=j
+          fprintf("%d is connected with %d\n",i,j);
+       end
+   end
+end
+
+%%
+test_vec = sin((1:1000)*6.28/1000);
+noise = 0.1*wgn(2,1000,0.006);
+figure;
+plot(test_vec+noise(1,:))
+hold on;
+plot(test_vec+noise(2,:))
+corrcoef(test_vec+noise(:,1),test_vec+noise(:,2))
+
+%%
+autocorr(dane_num(5,:))
+
+%%
+
+fWZ=dane_num(:,1);
+pWZ=dane_num(:,2);
+tWZ=dane_num(:,3);
+fP=dane_num(:,4);
+pP=dane_num(:,5);
+tP1=dane_num(:,6);
+tP2=dane_num(:,7);
+WSL=dane_num(:,8);
+WSP=dane_num(:,9);
+WPL=dane_num(:,10);
+WPP=dane_num(:,11);
+WT=dane_num(:,12);
+pPAL=dane_num(:,13);
+pKOT=dane_num(:,14);
+tRUSZT=dane_num(:,15);
+tPAL=dane_num(:,16);
+PP1=dane_num(:,17);
+PP2=dane_num(:,18);
+PP3=dane_num(:,19);
+PP4=dane_num(:,20);
+PP5=dane_num(:,21);
+PP6=dane_num(:,22);
+LW1=dane_num(:,23);
+LW2=dane_num(:,24);
+
+
+%% Kocio?.
+hiddenNeuronsK = 20;
+
+%Prepare data.
+X_cell = {pKOT'; WT'; WSL'; WSP'; WPL'; WPP'; tRUSZT'};
+T_cell = {pPAL'; tPAL'};
+
+X = [pKOT'; WT'; WSL'; WSP'; WPL'; WPP'; tRUSZT'];
+T = [pPAL'; tPAL'];
+
+net = layrecnet(1:2,hiddenNeuronsK);
+net = configure(net, X, T)
+net = init(net);
+net.trainFcn = 'traingd';
+rand('state',sum(100*clock));           %inicjalizacja generatora liczb 
+                                        %pseudolosowych
+net=init(net);                          %inicjalizacja wag sieci
+net.trainParam.goal = 0.01;             %warunek stopu - poziom b³êdu
+net.trainParam.epochs = 100;            %maksymalna liczba epok
+%net.trainParam.showWindow = false;      %nie pokazywaæ okna z wykresami
+
+%[Xs,Xi,Ai,Ts] = preparets(net,X_cell,T_cell);
+net = train(net,X,T);
+
+net.trainFcn = 'trainlm';
+net.trainParam.goal = 0.01;             %warunek stopu - poziom b³êdu
+net.trainParam.epochs = 200;            %maksymalna liczba epok
+
+net = train(net,X,T);
+
+view(net)
+res = sim(net,X);
+immse(res,T);
+
+%% Walczak.
+hiddenNeuronsK = 20;
+
+%Prepare data.
+X = [pWZ'; tWZ'; fWZ'; pP'; tP1'; fP'; pPAL'; tPAL'];
+T = [LW1'; LW2'];
+
+net = layrecnet(1:2,hiddenNeuronsK);
+net = configure(net, X, T)
+net = init(net);
+net.trainFcn = 'traingd';
+rand('state',sum(100*clock));           %inicjalizacja generatora liczb 
+                                        %pseudolosowych
+net=init(net);                          %inicjalizacja wag sieci
+net.trainParam.goal = 0.01;             %warunek stopu - poziom b³êdu
+net.trainParam.epochs = 100;            %maksymalna liczba epok
+%net.trainParam.showWindow = false;      %nie pokazywaæ okna z wykresami
+
+%[Xs,Xi,Ai,Ts] = preparets(net,X_cell,T_cell);
+net = train(net,X,T);
+
+net.trainFcn = 'trainlm';
+net.trainParam.goal = 0.01;             %warunek stopu - poziom b³êdu
+net.trainParam.epochs = 200;            %maksymalna liczba epok
+
+net = train(net,X,T);
+
+view(net)
+res = sim(net,X);
+immse(res,T);
